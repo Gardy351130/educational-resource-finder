@@ -59,6 +59,7 @@ CRITICAL: Return ONLY valid JSON in this EXACT format with NO explanation, NO ma
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
+        system: 'You are a JSON API. You ONLY return valid JSON. Never include explanations, markdown formatting, or any text outside the JSON object. Your entire response must be parseable JSON.',
         messages: [{
           role: 'user',
           content: prompt
