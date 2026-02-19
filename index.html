@@ -186,13 +186,13 @@
         
         <div class="info-box">
             <strong>⚠️ This is a test version</strong>
-            You need an Anthropic API key to use this. Get one free at: <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>
+            Enter your API key once - it will be saved in your browser.
         </div>
         
         <div class="api-key-section">
             <label for="apiKey">Anthropic API Key:</label>
             <input type="text" id="apiKey" placeholder="sk-ant-api03-..." />
-            <p>Your API key is only used for this session and never stored</p>
+            <p>Your API key is saved locally in your browser</p>
         </div>
         
         <div class="search-box">
@@ -246,6 +246,14 @@
     </div>
     
     <script>
+        // Load saved API key on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const savedKey = localStorage.getItem('anthropic_api_key');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+            }
+        });
+        
         async function search() {
             const apiKey = document.getElementById('apiKey').value.trim();
             const subject = document.getElementById('subject').value;
@@ -265,129 +273,3 @@
             // Validation
             if (!apiKey) {
                 statusDiv.className = 'status error';
-                statusDiv.textContent = '❌ Please enter your Anthropic API key';
-                return;
-            }
-            
-            if (!subject) {
-                statusDiv.className = 'status error';
-                statusDiv.textContent = '❌ Please select a subject';
-                return;
-            }
-            
-            if (!query) {
-                statusDiv.className = 'status error';
-                statusDiv.textContent = '❌ Please enter a search term';
-                return;
-            }
-            
-            // Show loading
-            statusDiv.className = 'status loading';
-            statusDiv.textContent = '🔍 Searching for educational resources...';
-            button.disabled = true;
-            
-            try {
-                // Build the prompt for Claude
-                const prompt = `You are an educational resource finder. Search the web for high-quality educational resources about "${query}" in the subject of ${subject}, suitable for grade level ${gradeLevel}.
-
-Focus on finding:
-${resourceType === 'all' ? '- Any type of educational resource (worksheets, articles, videos, activities, lesson plans)' : '- ' + resourceType.charAt(0).toUpperCase() + resourceType.slice(1)}
-
-Context:
-- Subject: ${subject}
-- Topic: ${query}
-- Grade Level: ${gradeLevel}
-
-Requirements:
-- FREE resources only (no paywalls, no subscriptions required)
-- Appropriate for ${gradeLevel} grade level
-- From reputable educational sites
-- Diverse sources (maximum 2 resources from the same website)
-- High quality, teacher-ready materials
-
-Return results in this JSON format:
-{
-  "resources": [
-    {
-      "title": "Resource title",
-      "source": "Website name",
-      "url": "https://...",
-      "description": "Brief description of what this resource provides",
-      "type": "worksheet/article/video/activity/lesson plan"
-    }
-  ]
-}
-
-Find 5-8 high-quality resources. Use web_search tool to find current, accurate results.`;
-
-                // Call our serverless function instead of Anthropic directly
-                const response = await fetch('/api/search', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        apiKey: apiKey,
-                        subject: subject,
-                        query: query,
-                        gradeLevel: gradeLevel,
-                        resourceType: resourceType
-                    })
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'API request failed');
-                }
-                
-                const results = await response.json();
-                
-                // Display results
-                displayResults(results.resources);
-                
-                statusDiv.className = 'status';
-                statusDiv.style.display = 'none';
-                button.disabled = false;
-                
-            } catch (error) {
-                statusDiv.className = 'status error';
-                statusDiv.textContent = `❌ Error: ${error.message}`;
-                button.disabled = false;
-                console.error('Search error:', error);
-            }
-        }
-        
-        function displayResults(resources) {
-            const resultsDiv = document.getElementById('results');
-            
-            if (!resources || resources.length === 0) {
-                resultsDiv.innerHTML = '<div class="result-item"><p>No results found. Try a different query.</p></div>';
-                resultsDiv.classList.add('show');
-                return;
-            }
-            
-            let html = `<h2>Found ${resources.length} Resources:</h2>`;
-            
-            resources.forEach(resource => {
-                html += `
-                    <div class="result-item">
-                        <h3>${escapeHtml(resource.title)}</h3>
-                        <div class="source">📚 ${escapeHtml(resource.source)} • ${escapeHtml(resource.type)}</div>
-                        <div class="description">${escapeHtml(resource.description)}</div>
-                        <a href="${escapeHtml(resource.url)}" target="_blank">Visit Resource →</a>
-                    </div>
-                `;
-            });
-            
-            resultsDiv.innerHTML = html;
-            resultsDiv.classList.add('show');
-        }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    </script>
-</body>
-</html>
