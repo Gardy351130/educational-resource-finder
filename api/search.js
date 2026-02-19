@@ -1,4 +1,4 @@
-// Vercel Serverless Function
+// Vercel Serverless Function - SIMPLIFIED
 // File: api/search.js
 
 export default async function handler(req, res) {
@@ -11,13 +11,11 @@ export default async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // Handle preflight request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -25,30 +23,27 @@ export default async function handler(req, res) {
   try {
     const { apiKey, subject, query, gradeLevel, resourceType } = req.body;
 
-    // Validation
     if (!apiKey || !subject || !query || !gradeLevel || !resourceType) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Build prompt for Claude
-    const prompt = `Search the web for high-quality educational resources about "${query}" in the subject of ${subject}, suitable for grade level ${gradeLevel}.
-
-Focus on finding:
-${resourceType === 'all' ? '- Any type of educational resource (worksheets, articles, videos, activities, lesson plans)' : '- ' + resourceType.charAt(0).toUpperCase() + resourceType.slice(1)}
+    // Simple, clear prompt
+    const prompt = `Find 5-8 FREE educational resources about "${query}" for ${subject}, grade ${gradeLevel}.
 
 Requirements:
-- FREE resources only (no paywalls)
-- Appropriate for ${gradeLevel} grade level
-- From reputable educational sites
+- FREE only (no paywalls)
+- Grade-appropriate for ${gradeLevel}
 - Diverse sources (max 2 per site)
-- High quality, teacher-ready
+${resourceType !== 'all' ? `- Focus on: ${resourceType}` : ''}
 
-Find 5-8 resources. Use web_search tool.
+For EACH resource, provide:
+1. Title
+2. Website name
+3. Direct URL
+4. One sentence description
 
-CRITICAL: Return ONLY valid JSON in this EXACT format with NO explanation, NO markdown, NO text before or after:
-{"resources":[{"title":"Resource title","source":"Website name","url":"https://...","description":"Brief description","type":"worksheet"}]}`;
+Use web_search to find current resources.`;
 
-    // Call Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -58,8 +53,7 @@ CRITICAL: Return ONLY valid JSON in this EXACT format with NO explanation, NO ma
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: 'You are a JSON API. You ONLY return valid JSON. Never include explanations, markdown formatting, or any text outside the JSON object. Your entire response must be parseable JSON.',
+        max_tokens: 3000,
         messages: [{
           role: 'user',
           content: prompt
@@ -80,60 +74,19 @@ CRITICAL: Return ONLY valid JSON in this EXACT format with NO explanation, NO ma
 
     const data = await response.json();
 
-    // Extract text from response
+    // Extract ALL text from response
     let resultText = '';
     for (const block of data.content) {
       if (block.type === 'text') {
-        resultText += block.text;
+        resultText += block.text + '\n';
       }
     }
 
-    // Try to parse JSON from response - handle multiple formats
-    let results = null;
-    
-    // Method 1: Look for JSON in code blocks
-    const codeBlockMatch = resultText.match(/```json\s*([\s\S]*?)\s*```/);
-    if (codeBlockMatch) {
-      try {
-        results = JSON.parse(codeBlockMatch[1]);
-      } catch (e) {
-        // Continue to next method
-      }
-    }
-    
-    // Method 2: Look for raw JSON object
-    if (!results) {
-      const jsonMatch = resultText.match(/\{[\s\S]*"resources"[\s\S]*?\[\s*\{[\s\S]*?\]\s*\}/);
-      if (jsonMatch) {
-        try {
-          results = JSON.parse(jsonMatch[0]);
-        } catch (e) {
-          // Continue to next method
-        }
-      }
-    }
-    
-    // Method 3: Try to extract just the resources array
-    if (!results) {
-      const arrayMatch = resultText.match(/"resources"\s*:\s*(\[[\s\S]*?\])\s*\}/);
-      if (arrayMatch) {
-        try {
-          const resourcesArray = JSON.parse(arrayMatch[1]);
-          results = { resources: resourcesArray };
-        } catch (e) {
-          // Failed
-        }
-      }
-    }
-    
-    if (!results || !results.resources) {
-      return res.status(500).json({ 
-        error: 'Could not parse results from Claude response',
-        rawResponse: resultText
-      });
-    }
-
-    return res.status(200).json(results);
+    // Return the raw text
+    return res.status(200).json({ 
+      text: resultText,
+      success: true
+    });
 
   } catch (error) {
     console.error('Search error:', error);
