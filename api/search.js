@@ -31,37 +31,22 @@ export default async function handler(req, res) {
     }
 
     // Build prompt for Claude
-    const prompt = `You are an educational resource finder. Search the web for high-quality educational resources about "${query}" in the subject of ${subject}, suitable for grade level ${gradeLevel}.
+    const prompt = `Search the web for high-quality educational resources about "${query}" in the subject of ${subject}, suitable for grade level ${gradeLevel}.
 
 Focus on finding:
 ${resourceType === 'all' ? '- Any type of educational resource (worksheets, articles, videos, activities, lesson plans)' : '- ' + resourceType.charAt(0).toUpperCase() + resourceType.slice(1)}
 
-Context:
-- Subject: ${subject}
-- Topic: ${query}
-- Grade Level: ${gradeLevel}
-
 Requirements:
-- FREE resources only (no paywalls, no subscriptions required)
+- FREE resources only (no paywalls)
 - Appropriate for ${gradeLevel} grade level
 - From reputable educational sites
-- Diverse sources (maximum 2 resources from the same website)
-- High quality, teacher-ready materials
+- Diverse sources (max 2 per site)
+- High quality, teacher-ready
 
-Return results in this JSON format:
-{
-  "resources": [
-    {
-      "title": "Resource title",
-      "source": "Website name",
-      "url": "https://...",
-      "description": "Brief description of what this resource provides",
-      "type": "worksheet/article/video/activity/lesson plan"
-    }
-  ]
-}
+Find 5-8 resources. Use web_search tool.
 
-Find 5-8 high-quality resources. Use web_search tool to find current, accurate results.`;
+CRITICAL: Return ONLY valid JSON in this EXACT format with NO explanation, NO markdown, NO text before or after:
+{"resources":[{"title":"Resource title","source":"Website name","url":"https://...","description":"Brief description","type":"worksheet"}]}`;
 
     // Call Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
