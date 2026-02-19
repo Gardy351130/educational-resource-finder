@@ -129,7 +129,7 @@ CRITICAL: Return ONLY valid JSON in this EXACT format with NO explanation, NO ma
     if (!results || !results.resources) {
       return res.status(500).json({ 
         error: 'Could not parse results from Claude response',
-        rawResponse: resultText.substring(0, 500) // Send first 500 chars for debugging
+        rawResponse: resultText
       });
     }
 
