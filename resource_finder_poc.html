@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educational Resource Finder - Proof of Concept</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .api-key-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .api-key-section p {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .status.loading {
+            display: block;
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status.error {
+            display: block;
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        .result-item {
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            background: #fafafa;
+        }
+        
+        .result-item h3 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+        
+        .result-item .source {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        
+        .result-item .description {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        
+        .result-item a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .result-item a:hover {
+            text-decoration: underline;
+        }
+        
+        .info-box {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Educational Resource Finder</h1>
+        <p class="subtitle">Proof of Concept - Powered by Claude AI</p>
+        
+        <div class="info-box">
+            <strong>⚠️ This is a test version</strong>
+            You need an Anthropic API key to use this. Get one free at: <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>
+        </div>
+        
+        <div class="api-key-section">
+            <label for="apiKey">Anthropic API Key:</label>
+            <input type="text" id="apiKey" placeholder="sk-ant-api03-..." />
+            <p>Your API key is only used for this session and never stored</p>
+        </div>
+        
+        <div class="search-box">
+            <label for="subject">Subject:</label>
+            <select id="subject">
+                <option value="">-- Select Subject --</option>
+                <option value="English/ELA">English / Language Arts</option>
+                <option value="Mathematics">Mathematics</option>
+                <option value="Science">Science</option>
+                <option value="Social Studies">Social Studies / History</option>
+                <option value="Foreign Language">Foreign Language</option>
+                <option value="Arts">Arts (Music, Visual Arts, Drama)</option>
+                <option value="Physical Education">Physical Education / Health</option>
+                <option value="Technology">Technology / Computer Science</option>
+                <option value="Life Skills">Life Skills / Career Education</option>
+            </select>
+        </div>
+        
+        <div class="search-box">
+            <label for="query">Search Term (be specific):</label>
+            <input type="text" id="query" placeholder="e.g., articles of speech, fractions, photosynthesis, sudoku puzzles" value="" />
+        </div>
+        
+        <div class="search-box">
+            <label for="gradeLevel">Grade Level:</label>
+            <select id="gradeLevel">
+                <option value="K-2">K-2 (Ages 5-7)</option>
+                <option value="3-5">3-5 (Ages 8-10)</option>
+                <option value="6-8" selected>6-8 (Ages 11-13)</option>
+                <option value="9-12">9-12 (Ages 14-18)</option>
+            </select>
+        </div>
+        
+        <div class="search-box">
+            <label for="resourceType">Resource Type:</label>
+            <select id="resourceType">
+                <option value="all">All Types</option>
+                <option value="worksheets">Worksheets</option>
+                <option value="articles">Articles</option>
+                <option value="videos">Videos</option>
+                <option value="activities">Interactive Activities</option>
+                <option value="lesson plans">Lesson Plans</option>
+            </select>
+        </div>
+        
+        <button onclick="search()">Search for Resources</button>
+        
+        <div class="status" id="status"></div>
+        
+        <div class="results" id="results"></div>
+    </div>
+    
+    <script>
+        async function search() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const subject = document.getElementById('subject').value;
+            const query = document.getElementById('query').value.trim();
+            const gradeLevel = document.getElementById('gradeLevel').value;
+            const resourceType = document.getElementById('resourceType').value;
+            
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            const button = document.querySelector('button');
+            
+            // Clear previous results
+            resultsDiv.classList.remove('show');
+            resultsDiv.innerHTML = '';
+            statusDiv.className = 'status';
+            
+            // Validation
+            if (!apiKey) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Please enter your Anthropic API key';
+                return;
+            }
+            
+            if (!subject) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Please select a subject';
+                return;
+            }
+            
+            if (!query) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Please enter a search term';
+                return;
+            }
+            
+            // Show loading
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '🔍 Searching for educational resources...';
+            button.disabled = true;
+            
+            try {
+                // Build the prompt for Claude
+                const prompt = `You are an educational resource finder. Search the web for high-quality educational resources about "${query}" in the subject of ${subject}, suitable for grade level ${gradeLevel}.
+
+Focus on finding:
+${resourceType === 'all' ? '- Any type of educational resource (worksheets, articles, videos, activities, lesson plans)' : '- ' + resourceType.charAt(0).toUpperCase() + resourceType.slice(1)}
+
+Context:
+- Subject: ${subject}
+- Topic: ${query}
+- Grade Level: ${gradeLevel}
+
+Requirements:
+- FREE resources only (no paywalls, no subscriptions required)
+- Appropriate for ${gradeLevel} grade level
+- From reputable educational sites
+- Diverse sources (maximum 2 resources from the same website)
+- High quality, teacher-ready materials
+
+Return results in this JSON format:
+{
+  "resources": [
+    {
+      "title": "Resource title",
+      "source": "Website name",
+      "url": "https://...",
+      "description": "Brief description of what this resource provides",
+      "type": "worksheet/article/video/activity/lesson plan"
+    }
+  ]
+}
+
+Find 5-8 high-quality resources. Use web_search tool to find current, accurate results.`;
+
+                // Call our serverless function instead of Anthropic directly
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        subject: subject,
+                        query: query,
+                        gradeLevel: gradeLevel,
+                        resourceType: resourceType
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'API request failed');
+                }
+                
+                const results = await response.json();
+                
+                // Display results
+                displayResults(results.resources);
+                
+                statusDiv.className = 'status';
+                statusDiv.style.display = 'none';
+                button.disabled = false;
+                
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+                button.disabled = false;
+                console.error('Search error:', error);
+            }
+        }
+        
+        function displayResults(resources) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (!resources || resources.length === 0) {
+                resultsDiv.innerHTML = '<div class="result-item"><p>No results found. Try a different query.</p></div>';
+                resultsDiv.classList.add('show');
+                return;
+            }
+            
+            let html = `<h2>Found ${resources.length} Resources:</h2>`;
+            
+            resources.forEach(resource => {
+                html += `
+                    <div class="result-item">
+                        <h3>${escapeHtml(resource.title)}</h3>
+                        <div class="source">📚 ${escapeHtml(resource.source)} • ${escapeHtml(resource.type)}</div>
+                        <div class="description">${escapeHtml(resource.description)}</div>
+                        <a href="${escapeHtml(resource.url)}" target="_blank">Visit Resource →</a>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('show');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
